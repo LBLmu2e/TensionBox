@@ -6,9 +6,9 @@
 # By Vadim Rusu (vrusu@fnal.gov)
 # Updated 22 February 2016
 # By Lauren Yates (yatesla@fnal.gov)
- 
-from PyQt5.QtCore import * 
-from PyQt5.QtGui import * 
+
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import sys
 import serial.tools.list_ports      ## automatically get COM port
@@ -23,11 +23,14 @@ import matplotlib.pyplot as plt
 import serial     ## from pyserial
 import math, time, os
 
-from scipy.signal import blackmanharris, fftconvolve
-from parabolic import parabolic
-
 from datetime import datetime as dt
 from X0117d import DataCanvas  ## control window for plots
+
+import scipy
+from scipy.signal import fftconvolve
+from scipy.signal.windows import blackmanharris
+from parabolic import parabolic
+
 
 
 nplot = 200
@@ -70,7 +73,7 @@ def plotadc(y0):
 
     ax1 = fig.add_subplot(211)
 
-    ax1.set_title("Data")    
+    ax1.set_title("Data")
     ax1.set_xlabel('ms')
     ax1.set_ylabel('ADC counts')
     xx = range(0, len(y0))
@@ -140,7 +143,7 @@ class TensionBox(QMainWindow, tensionbox_window.Ui_MainWindow):
         """ Update plot: add new (wire number,tension) measurement """
         self.z = np.append(self.z,np.array([[self.spinBox.value(),self.tension]]),axis=0)
         self.canvas.read_data(self.z)
-        self.data_widget.repaint() 
+        self.data_widget.repaint()
 
     def openFile(self):
         """ Open a dialog window for user to select a text file """
@@ -175,7 +178,7 @@ class TensionBox(QMainWindow, tensionbox_window.Ui_MainWindow):
         # Set the straw or wire length
         if strawNumber == -1:
             # Set the straw length based on what is in the straw length box
-            length = float(self.lengthEdit.text())# units are now in meters. 
+            length = float(self.lengthEdit.text())# units are now in meters.
         else:
             if straw_flag == 0:
                 # Read in the wire lengths
@@ -190,9 +193,9 @@ class TensionBox(QMainWindow, tensionbox_window.Ui_MainWindow):
             length = lengths[strawNumber]
             # Set the length in the UI (meters)
             length_display = "%.3f" %length
-            
+
             self.lengthEdit.setText(length_display)
-        # Set straw and wire parameters 
+        # Set straw and wire parameters
         mu = 0.00010505  # effective mass density in [g/cm]
         K = 156.5
         C = 3.067
@@ -208,13 +211,13 @@ class TensionBox(QMainWindow, tensionbox_window.Ui_MainWindow):
         except ValueError:
             tension = 80. #nominal tension in grams
         # Wires: calculate nominal frequency from nominal tension
-        if straw_flag == 0:          
-            freq = (1/(2*length))*np.sqrt(tension/mu) 
+        if straw_flag == 0:
+            freq = (1/(2*length))*np.sqrt(tension/mu)
         # Straws: calculate nominal frequency from nominal tension
         elif straw_flag == 1:
             # For a straw
             tension = tension*10. #nominal tension in grams
-            freq = np.sqrt(tension/1000)*(K/(2*length))+C/(length)**2  
+            freq = np.sqrt(tension/1000)*(K/(2*length))+C/(length)**2
             #tension = [1000*((f-C/(L/100)**2)*2*(L/100)/K)**2 for L,f in zip(length,freq)]
         # Calculate the desired pulse width in microseconds
         pulse_width = (1./(2*freq))*10**6
@@ -240,7 +243,7 @@ class TensionBox(QMainWindow, tensionbox_window.Ui_MainWindow):
             self.tensionEdit.setText(tension_display)
 
             #print(strawNumber, straw_flag, length,freq,pulse_width,tension)
-            
+
             # Write a summary of the results to the output file
             fdef.write(str(dt.now()))
             panel=self.panelID.text()
@@ -256,7 +259,7 @@ class TensionBox(QMainWindow, tensionbox_window.Ui_MainWindow):
 
             # Given the frequency, calculate the desired pulse width in microseconds for the next run
             pulse_width = (1./(2*freq))*10**6
-            
+
         fdef.close()
 
     def ping10(self, i, pulse_width):
@@ -269,17 +272,17 @@ class TensionBox(QMainWindow, tensionbox_window.Ui_MainWindow):
 
         data1 = [0]*nlines
         for ik in range(0, self.SpinNpulses.value()):
-        
+
             filename = "output" + str(ik) +'.txt'
             f = open(filename, 'w')
-            
+
             # Trigger the Arduino to take data
             self.ser.write(b'5\n')
 
             # Write out the desired pulse width
             # Arduino code must be updated to know to accept this
-            
-            self.ser.write(bytes(str(int(pulse_width))+'\n','UTF-8'))           
+
+            self.ser.write(bytes(str(int(pulse_width))+'\n','UTF-8'))
             self.ser.readline()  # Read in the line where Arduino echos trigger
 
             # Read in the line where Arduino prints the pulse width, and print it out once per iteration
@@ -294,10 +297,10 @@ class TensionBox(QMainWindow, tensionbox_window.Ui_MainWindow):
             for ic in range(0, nlines):
                 line = int(self.ser.readline())
                 if line >= 8192:
-                    val = (line-16383)*1.22                    
+                    val = (line-16383)*1.22
                 else:
                     val = (line+1)*1.22
-                    
+
                 f.write(" %s" % val)
                 if ic < nlines-1:
                     f.write(",")
@@ -319,7 +322,7 @@ class TensionBox(QMainWindow, tensionbox_window.Ui_MainWindow):
         freq_display = "%.3f" %freq
         #self.freqEdit.setText(str(freq))
         self.freqEdit.setText(freq_display)
-        
+
         # Use this to plot the data only on the last iteration
         if i == self.SpinNiter.value()-1:
             # other options: plt.close(1); plt.close()
@@ -360,10 +363,10 @@ if __name__ == '__main__':
         print('Arduino not found \nPlug wire tensioner into any USB port')
         time.sleep(2)
         print("Exiting script")
-        sys.exit()    
+        sys.exit()
     print("Arduino Due at {}".format(ports[0]))
-    app = QApplication(sys.argv) 
+    app = QApplication(sys.argv)
     ctr = TensionBox(ports[0])
-    ctr.show() 
+    ctr.show()
     app.exec_()
 
