@@ -51,6 +51,8 @@ def freq_from_fft(signal, fs):
     # Compute Fourier transform of windowed signal
     windowed = signal * blackmanharris(len(signal))
     f = rfft(windowed)
+    print(windowed)
+    print("f",f)
 
     # Find the peak and interpolate to get a more accurate peak
     i = argmax(abs(f[:nmax]))  # Just use this for less-accurate, naive version
@@ -122,11 +124,11 @@ class TensionBox(QMainWindow, tensionbox_window.Ui_MainWindow):
     def main(self):
         """ Make the dialog window visible for the user to interact with """
         self.show()
+        self.lengthEdit.setValue(0.25)
 
     def connectActions(self):
         """ Connect the user interface controls to the logic """
         self.runButton.clicked.connect(self.run)
-        self.runnext.clicked.connect(lambda: self.run(nextstraw=True))
         self.fileButton.clicked.connect(self.openFile)
 
     def testplot3(self):
@@ -175,26 +177,9 @@ class TensionBox(QMainWindow, tensionbox_window.Ui_MainWindow):
         else:
             straw_flag = -1
 
-        # Set the straw or wire length
-        if strawNumber == -1:
-            # Set the straw length based on what is in the straw length box
-            length = float(self.lengthEdit.text())# units are now in meters.
-        else:
-            if straw_flag == 0:
-                # Read in the wire lengths
-                lengths = np.loadtxt(os.path.join(this_folder,'wire_lengths.txt'))
-            elif straw_flag == 1:
-                # Read in the straw lengths
-                lengths = np.loadtxt(os.path.join(this_folder,'straw_lengths.txt'))
-            else:
-                lengths = np.zeros(96)
-            lengths = lengths/100.  # Convert to meters
-            # Look up the length, based on the straw number
-            length = lengths[strawNumber]
-            # Set the length in the UI (meters)
-            length_display = "%.3f" %length
+        # Set the straw length based on what is in the straw length box
+        length = float(self.lengthEdit.text())# units are now in meters.
 
-            self.lengthEdit.setText(length_display)
         # Set straw and wire parameters
         mu = 0.00010505  # effective mass density in [g/cm]
         K = 156.5
@@ -202,7 +187,7 @@ class TensionBox(QMainWindow, tensionbox_window.Ui_MainWindow):
 
         # Read in the name of the desired output file, and open it
         myfile = self.fileName.text().split(': ')[-1]
-        #print(myfile)
+        print("results in ",myfile)
         fdef = open(myfile, 'a')
 
         # Set the nominal tension to compute the initial pulse width to use
@@ -215,7 +200,7 @@ class TensionBox(QMainWindow, tensionbox_window.Ui_MainWindow):
             freq = (1/(2*length))*np.sqrt(tension/mu)
         # Straws: calculate nominal frequency from nominal tension
         elif straw_flag == 1:
-            # For a straw
+        # For a straw
             tension = tension*10. #nominal tension in grams
             freq = np.sqrt(tension/1000)*(K/(2*length))+C/(length)**2
             #tension = [1000*((f-C/(L/100)**2)*2*(L/100)/K)**2 for L,f in zip(length,freq)]
@@ -242,14 +227,14 @@ class TensionBox(QMainWindow, tensionbox_window.Ui_MainWindow):
             tension_display = "%.3f" %tension
             self.tensionEdit.setText(tension_display)
 
-            #print(strawNumber, straw_flag, length,freq,pulse_width,tension)
+            print(strawNumber, straw_flag, length,freq,pulse_width,tension)
 
             # Write a summary of the results to the output file
             fdef.write(str(dt.now()))
-            panel=self.panelID.text()
-            if panel=='': ## default MN000 for testing
-                panel = 'MN000'
-            value = ' {0} {1} {2} {3} {4} {5} {6}\n'.format(panel,strawNumber, straw_flag, length, freq, pulse_width, tension)
+#            panel=self.panelID.text()
+#            if panel=='': ## default MN000 for testing
+#                panel = 'MN000'
+            value = ' {0} {1} {2} {3} {4} {5} {6}\n'.format(strawNumber, straw_flag, length, freq, pulse_width, tension)
             fdef.write(str(value))
 
             ## Add (wire number,tension) measurement to plot
@@ -271,13 +256,15 @@ class TensionBox(QMainWindow, tensionbox_window.Ui_MainWindow):
         """
 
         data1 = [0]*nlines
+        print("Making ",self.SpinNpulses.value()," pulses")
         for ik in range(0, self.SpinNpulses.value()):
-
+            print("Processing pulse ",ik)
             filename = "output" + str(ik) +'.txt'
             f = open(filename, 'w')
 
             # Trigger the Arduino to take data
             self.ser.write(b'5\n')
+#            self.ser.write(b'4\n')
 
             # Write out the desired pulse width
             # Arduino code must be updated to know to accept this
@@ -287,12 +274,12 @@ class TensionBox(QMainWindow, tensionbox_window.Ui_MainWindow):
 
             # Read in the line where Arduino prints the pulse width, and print it out once per iteration
             if ik == 0:
-                #print (str(self.ser.readline()))  # Read in and print line where Arduino prints pulse width
+                print (str(self.ser.readline()))  # Read in and print line where Arduino prints pulse width
                 print(self.ser.readline().decode("utf-8").strip() )
                 print(int(pulse_width))
             else:
                 self.ser.readline() # Read in and print line where Arduino prints pulse width
-                print(int(pulse_width))
+                #print(int(pulse_width))
             # Read in the straw displacement data, and write it out to a file
             for ic in range(0, nlines):
                 line = int(self.ser.readline())
@@ -309,11 +296,14 @@ class TensionBox(QMainWindow, tensionbox_window.Ui_MainWindow):
 
             # Read back in the data from that file and add it to previous data
             data = np.genfromtxt(filename, delimiter=',')
+            print(data)
             data = data-data.mean()
             data1 = np.add(data1, data)
 
             # Set the value in the progress bar (based on both iterations and pulses)
-            self.progressBar.setValue(100*(i+1)*(ik+1)/(self.SpinNiter.value()*self.SpinNpulses.value()))
+#            self.progressBar.setValue(100*(i+1)*(ik+1)/(self.SpinNiter.value()*self.SpinNpulses.value()))
+            self.progressBar.setValue(100*(i+1)*(ik+1))
+#                                      /(self.SpinNiter.value()*self.SpinNpulses.value()))
 
         # Compute the frequency
         freq = freq_from_fft(data1, 1./SampleRate)
