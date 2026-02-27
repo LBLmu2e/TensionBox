@@ -42,6 +42,8 @@ class Analyze_csv(object):
             lastrow = len(self.Times)-1
         fig, (timed,freqd) = plt.subplots(2,1,layout='constrained', figsize=(20,10))
         timeline = timed.plot(self.Times,self.Volts,scalex=True,scaley=True)
+        timed.set_xlabel("Time (seconds)")
+        timed.set_ylabel("Signal (Volts)")
 
         # compute the sampling frequency in KHz
         nsamp = len(self.Times)
@@ -53,6 +55,8 @@ class Analyze_csv(object):
         #print(windowed)
         nplot = 400
         freqplt =freqd.semilogy(xf[1:nplot//2], 2.0/nplot * np.abs(voltfft[1:nplot//2]), '-r')
+        freqd.set_xlabel("Frequency (Hz)")
+        freqd.set_ylabel("Amplitude")
     # Find the peak (primary harmonic) and interpolate around it to get a more accurate peak
         nmax = 400
         i = argmax(abs(voltfft[:nmax]))
