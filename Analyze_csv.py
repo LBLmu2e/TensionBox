@@ -61,11 +61,11 @@ class Analyze_csv(object):
         # Convert to equivalent frequency
         # compute the sampling frequency in KHz
         ffreq = sfreq * true_i / len(windowed)
-        print("frequency =", ffreq ,"Hz")
+        print(f"Fundamental frequency = {ffreq:.2f} Hz")
         # now compute tension
         mu = 9.47e-6 # linear density of 25 micron diameter wire in kg/m
         g = 9.81 # gravitational constant
         length = 0.65 # wire length in meters
         tension = mu*np.square(ffreq*2*length) # tension in N
         wt = 1000*tension/g # equivalent tension in grams
-        print("Wire tension = ",wt,"grams")
+        print(f"Wire tension = {wt:.2f} grams")
