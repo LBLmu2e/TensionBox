@@ -2,7 +2,7 @@
 
 import sys
 import numpy as np
-from numpy.fft import rfft, irfft
+from numpy.fft import fft, fftfreq, rfft, irfft
 from numpy import argmax, sqrt, mean, diff, log
 import matplotlib
 import matplotlib.pyplot as plt
@@ -12,24 +12,6 @@ from scipy.signal import fftconvolve
 from scipy.signal.windows import blackmanharris
 from parabolic import parabolic
 import csv
-
-
-def freq_from_fft(signal, fs):
-    """ Estimate frequency from peak of FFT """
-
-    # Compute Fourier transform of windowed signal
-    windowed = signal * blackmanharris(len(signal))
-    f = rfft(windowed)
-    print(windowed)
-    print("f",f)
-
-    # Find the peak and interpolate to get a more accurate peak
-    i = argmax(abs(f[:nmax]))  # Just use this for less-accurate, naive version
-    true_i = parabolic(log(abs(f)), i)[0]
-
-    # Convert to equivalent frequency
-    return fs * true_i / len(windowed)
-
 
 class Analyze_csv(object):
     def __init__(self,filename,firstrow,lastrow):
@@ -44,8 +26,8 @@ class Analyze_csv(object):
             for row in reader:
                 if (irow >= firstrow) & (irow <= lastrow) :
 #                    print(row['Seconds'], row['Volts'])
-                    self.Times[jrow] = row['Seconds']
-                    self.Volts[jrow] = row['Volts']
+                    self.Times[jrow] = float(row['Seconds'])
+                    self.Volts[jrow] = float(row['Volts'])
                     jrow += 1
                 irow += 1
 
@@ -61,4 +43,29 @@ class Analyze_csv(object):
         fig, (timed,freqd) = plt.subplots(2,1,layout='constrained', figsize=(20,10))
         timeline = timed.plot(self.Times,self.Volts,scalex=True,scaley=True)
 
+        # compute the sampling frequency in KHz
+        nsamp = len(self.Times)
+        sfreq = nsamp/((self.Times[nsamp-1]-self.Times[0]))
+        # Compute Fourier transform of windowed signal
+        windowed = self.Volts * blackmanharris(nsamp)
+        voltfft = fft(windowed)
+        xf = fftfreq(nsamp,1.0/sfreq)[:nsamp//2]
+        #print(windowed)
+        nplot = 400
+        freqplt =freqd.semilogy(xf[1:nplot//2], 2.0/nplot * np.abs(voltfft[1:nplot//2]), '-r')
+    # Find the peak (primary harmonic) and interpolate around it to get a more accurate peak
+        nmax = 400
+        i = argmax(abs(voltfft[:nmax]))
+        true_i = parabolic(log(abs(voltfft)), i)[0]
 
+        # Convert to equivalent frequency
+        # compute the sampling frequency in KHz
+        ffreq = sfreq * true_i / len(windowed)
+        print("frequency =", ffreq ,"Hz")
+        # now compute tension
+        mu = 9.47e-6 # linear density of 25 micron diameter wire in kg/m
+        g = 9.81 # gravitational constant
+        length = 0.65 # wire length in meters
+        tension = mu*np.square(ffreq*2*length) # tension in N
+        wt = 1000*tension/g # equivalent tension in grams
+        print("Wire tension = ",wt,"grams")
