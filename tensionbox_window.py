@@ -7,7 +7,7 @@
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
- 
+
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -138,18 +138,18 @@ class Ui_MainWindow(object):
         self.progressBar.setGeometry(QtCore.QRect(240, 300, 291, 23))
         self.progressBar.setProperty("value", 24)
         self.progressBar.setObjectName("progressBar")
-        self.panelID = QtWidgets.QLineEdit(self.centralwidget)
-        self.panelID.setGeometry(QtCore.QRect(30, 20, 81, 31))
-        font = QtGui.QFont()
-        font.setPointSize(14)
-        self.panelID.setFont(font)
-        self.panelID.setObjectName("panelID")
-        self.label_8 = QtWidgets.QLabel(self.centralwidget)
-        self.label_8.setGeometry(QtCore.QRect(120, 20, 111, 31))
-        font = QtGui.QFont()
-        font.setPointSize(12)
-        self.label_8.setFont(font)
-        self.label_8.setObjectName("label_8")
+#        self.panelID = QtWidgets.QLineEdit(self.centralwidget)
+#        self.panelID.setGeometry(QtCore.QRect(30, 20, 81, 31))
+#        font = QtGui.QFont()
+#        font.setPointSize(14)
+#        self.panelID.setFont(font)
+#        self.panelID.setObjectName("panelID")
+#        self.label_8 = QtWidgets.QLabel(self.centralwidget)
+#        self.label_8.setGeometry(QtCore.QRect(120, 20, 111, 31))
+#        font = QtGui.QFont()
+#        font.setPointSize(12)
+#        self.label_8.setFont(font)
+#        self.label_8.setObjectName("label_8")
         self.graphicsView = QtWidgets.QGraphicsView(self.centralwidget)
         self.graphicsView.setGeometry(QtCore.QRect(580, 40, 501, 361))
         self.graphicsView.setObjectName("graphicsView")
@@ -161,12 +161,8 @@ class Ui_MainWindow(object):
         font.setWeight(75)
         self.label_9.setFont(font)
         self.label_9.setObjectName("label_9")
-        self.runnext = QtWidgets.QPushButton(self.centralwidget)
-        self.runnext.setGeometry(QtCore.QRect(30, 210, 141, 41))
         font = QtGui.QFont()
         font.setPointSize(12)
-        self.runnext.setFont(font)
-        self.runnext.setObjectName("runnext")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1094, 21))
@@ -189,14 +185,13 @@ class Ui_MainWindow(object):
         self.label_3.setText(_translate("MainWindow", "Number of Pulses"))
         self.label_4.setText(_translate("MainWindow", "Number of Iterations"))
         self.runButton.setText(_translate("MainWindow", "Measure Current"))
-        self.label_5.setText(_translate("MainWindow", "Length [m]"))
+        self.label_5.setText(_translate("MainWindow", "Length [m]", "0.62"))
         self.label_6.setText(_translate("MainWindow", "Frequency [Hz]"))
         self.label_7.setText(_translate("MainWindow", "Tension [g]"))
-        self.fileName.setText(_translate("MainWindow", "Saving to file: default.txt"))
+        self.fileName.setText(_translate("MainWindow", "Saving to file: tensions.txt"))
         self.fileButton.setText(_translate("MainWindow", "Change File"))
-        self.panelID.setPlaceholderText(_translate("MainWindow", "MN000"))
-        self.label_8.setText(_translate("MainWindow", "Panel ID"))
+#        self.panelID.setPlaceholderText(_translate("MainWindow", "MN000"))
+#        self.label_8.setText(_translate("MainWindow", "Panel ID"))
         self.label_9.setText(_translate("MainWindow", "Wire Tension vs. Wire Number"))
-        self.runnext.setText(_translate("MainWindow", "Measure Next"))
 
 

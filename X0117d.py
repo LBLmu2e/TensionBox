@@ -1,6 +1,6 @@
 #### X0117d.py
 #### Module for displaying plots in PyQt5 GUI
- 
+
 import sys, random, matplotlib
 from PyQt5 import QtCore,QtGui
 from PyQt5.QtWidgets import *
@@ -17,10 +17,10 @@ class DataCanvas(FigureCanvas):
                  xlabel='xlabel',ylabel='ylabel'):
         self.fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = self.fig.add_subplot(111)
-        self.axes.clear() 
+        self.axes.clear()
         FigureCanvas.__init__(self, self.fig)
         self.setParent(parent)
-        FigureCanvas.setSizePolicy(self,QSizePolicy.Expanding,QSizePolicy.Expanding) 
+        FigureCanvas.setSizePolicy(self,QSizePolicy.Expanding,QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
         self.axes.grid(True)
         self.axes.set_ylabel(ylabel)
@@ -35,22 +35,22 @@ class DataCanvas(FigureCanvas):
         self.axes.plot(data[:,0], data[:,1],'g.')
         self.fig.canvas.draw()
         self.fig.canvas.flush_events()
-        
+
 
 class PlottingWindow(QDialog):
     """Main app: select plotting parameters and display data"""
     def __init__(self):
-        super().__init__() 
+        super().__init__()
         self.setupUi(self)
         self.testbutton.clicked.connect(self.test)
         self.z = np.array([[-10,-10]])
         self.data_widget = QWidget(self.graphicsView)
         layout = QHBoxLayout(self.graphicsView)
-        self.canvas = DataCanvas(self.data_widget,data=None) 
+        self.canvas = DataCanvas(self.data_widget,data=None)
         layout.addWidget(self.canvas)
         self.data_widget.repaint()
         self.show()
-    
+
     def setupUi(self, Dialog):
         Dialog.setObjectName("Dialog")
         Dialog.resize(500, 400)
@@ -76,8 +76,8 @@ class PlottingWindow(QDialog):
         print(self.z)
         self.canvas.read_data(self.z)
 
-        
-if __name__ == "__main__": 
+
+if __name__ == "__main__":
     app = QApplication(sys.argv)
     ctr = PlottingWindow()
     ctr.show()
