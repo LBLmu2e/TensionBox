@@ -301,9 +301,7 @@ class TensionBox(QMainWindow, tensionbox_window.Ui_MainWindow):
             data1 = np.add(data1, data)
 
             # Set the value in the progress bar (based on both iterations and pulses)
-#            self.progressBar.setValue(100*(i+1)*(ik+1)/(self.SpinNiter.value()*self.SpinNpulses.value()))
-            self.progressBar.setValue(100*(i+1)*(ik+1))
-#                                      /(self.SpinNiter.value()*self.SpinNpulses.value()))
+            self.progressBar.setValue(int(100*(i+1)*(ik+1)/(self.SpinNiter.value()*self.SpinNpulses.value())))
 
         # Compute the frequency
         freq = freq_from_fft(data1, 1./SampleRate)
