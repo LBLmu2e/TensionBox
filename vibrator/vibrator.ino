@@ -170,7 +170,7 @@ void loop()
 
     unsigned int *pReading = adcreadings;
     unsigned int tNext = 0;
-    digitalWrite(dbgPin,HIGH); // what is this used for? just debugging?
+    digitalWrite(dbgPin,HIGH); // what is this used for? just debugging? measuring the effective frequency?
     for (int i = dataLength; i--; pReading++)
     {
       unsigned int tNow;
