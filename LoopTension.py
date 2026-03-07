@@ -21,12 +21,12 @@ from datetime import datetime as dt
 
 class LoopTension(object):
     def __init__(self,wirelen=0.65): # wire length in m
-        self.wirelen = wirelen
+        print("Initializing tension measurement for wire length",wirelen)
         self.fscale = 3.864e-3 * wirelen*wirelen # scale between frequency and wire length
-        self.nomtension = 80 # nominal tension
+        self.nomtension = 80 # nominal tension (gm)
         self.maxtension = 100 # maximum tension when conditioning the wire
         self.breaktension = 120 # breaking point!
-        self.ArduinoPeriod = 1./8900. # effective period
+        self.ArduinoPeriod = 1./8900. # effective period, measured from scope (repeat!)
         self.nplot = 200
         self.nmax = 400
         self.nADC = 2000          # Should match DataLength in the Arduino code
@@ -51,7 +51,7 @@ class LoopTension(object):
         return self.fscale*freq*freq
 
     def period(self,tension_gm): # return period in seconds for a given tension in gm
-        return self.wirelen*np.sqrt(self.fscale/tension_gm)
+        return np.sqrt(self.fscale/tension_gm)
 
     def plot(self):
         fig, (timed,freqd) = plt.subplots(2,1,layout='constrained', figsize=(20,10))
@@ -105,9 +105,10 @@ class LoopTension(object):
 
     def loop(self,npulses):
         print("Looping over",npulses,"pulses")
-        # set initial pulse width according to 1/2 the breaking tensio
-        pulse_width = 0.5*self.period(self.breaktension)
-        ifreq = 0.5/pulse_width
+        # set initial pulse width according to 1/2 the nominal tension
+        iperiod = self.period(self.nomtension)
+        pulse_width = 0.5*iperiod
+        ifreq = 1.0/iperiod
         print(f"Initial frequency = {ifreq:.1f} Hz, pulse width = {pulse_width:.6f} seconds")
         for ik in range(0, npulses):
             self.PulseAndRead(pulse_width*1e6,ik==0) # microseconds
