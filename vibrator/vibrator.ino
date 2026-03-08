@@ -15,9 +15,6 @@
 
 const int enable = 8;
 const int enabledigi = 9;
-//try reversing:
-//const int enable = 9;
-//const int enabledigi = 8;
 
 const int convst = 10;
 const int busy = 5;
@@ -26,14 +23,14 @@ const int sclk = 11;
 const int dbgPin = 23;
 
 const int baudRate = 115200;
-const int dataLength = 2000;
+const int dataLength = 400;
+const int delaymicro = 120;
 
 void setup()
 {
   REG_ADC_MR = (REG_ADC_MR & 0xFFF0F0FF) | 0x000F0300;
   analogReadResolution(12);
   Serial.begin(baudRate); // start serial for output
-  //  Serial.println("Setting up BMP085");
   Wire.begin();
 
   pinMode(enable, OUTPUT);
@@ -78,12 +75,8 @@ unsigned int readADC()
     {
       digitalWrite(sclk,HIGH);
       unsigned int d = digitalRead(sdata);
-
       digitalWrite(sclk,LOW);
       adcval |= (d<<i);
-      //Serial.println(d);
-      //Serial.println(adcval);
-      //digitalWrite(sclk,LOW);
     }
 
   delayMicroseconds(1);
@@ -92,8 +85,7 @@ unsigned int readADC()
 
 void loop()
 {
-  int v=analogRead(sdata);
-  //Serial.println(v);
+  int v=analogRead(sdata); // what is this for???
 
   int incomingByte = 0;
   unsigned int adcreadings[dataLength];
@@ -106,108 +98,46 @@ void loop()
 
   while (!Serial.available());
 
-  //  buffer = Serial.read();
-  //Serial.println("I am ready");
-
   Serial.setTimeout(1000000);
 
   // Read in the incoming trigger
   Serial.readBytesUntil('\n',buffer,8);
   int incoming = atoi(buffer);
-  //Serial.println(incoming);
 
   // Read in the pulse width
   Serial.readBytesUntil('\n',buffer,8);
-  int pulseWidth = atoi(buffer);
+  int pulse_width = atoi(buffer);
 
-  if (incoming == 4){
-    Serial.println("4");
-    Serial.println("Pulsing 100 times with a pulse of width (in microseconds): 1000");
-
-    //Pulse the straw
-    for (int i =0; i<100; i++)
-    {
-      delayMicroseconds(5666);
-      startDrive();
-      delayMicroseconds(1000); // fixed 1ms pulse
-      // delay(100);
-      endDrive();
-    }
-    delay(1);
-    startDigitize();
-    delayMicroseconds(10);
-
-    for (int i = 0 ; i < dataLength; i++)
-    {
-      adcreadings[i] = readADC();
-      delayMicroseconds(1); // 1 micro delay
-    }
-
-    endDigitize();
-
-    // Now send to serial
-    for (int i = 0 ; i < dataLength; i++){
-      Serial.println(adcreadings[i]);
-    }
-
-  }
-  else if (incoming == 5){
-    // debug digitize with variable pulse length
-    Serial.println("5");
-
+  if (incoming == 5){
     Serial.print("Using a pulse of width (in microseconds): ");
-    Serial.println(pulseWidth);
+    Serial.println(pulse_width);
 
     // Pulse the straw
     startDrive();
-    delayMicroseconds(pulseWidth);
+    delayMicroseconds(pulse_width);
     endDrive();
 
     delay(3); // Delay between pulse and gate
     startDigitize();
 
-    delayMicroseconds(10);
-
     unsigned int *pReading = adcreadings;
-    unsigned int tNext = 0;
-    digitalWrite(dbgPin,HIGH); // what is this used for? just debugging? measuring the effective frequency?
-    for (int i = dataLength; i--; pReading++)
-    {
-      unsigned int tNow;
-      while ((tNow = micros())<tNext); // unclear why this structure is needed; why not just call delayMicroseconds??
-      tNext = tNow + 120; // wait 120 usec between readings starting at the 2nd reading
+    int iread = 0;
+    unsigned long tstart = micros();
+    do{
+      delayMicroseconds(delaymicro);
       *pReading = readADC();
-    }
-    digitalWrite(dbgPin,LOW);
-
+      iread++;
+      pReading++;
+    } while(iread < dataLength);
+    unsigned long elapsed = micros() - tstart;
     endDigitize();
 
     // Now send to serial
     for (int i = 0 ; i < dataLength; i++){
       Serial.println(adcreadings[i]);
     }
-  }
-
-  else if (incoming == 6){
-    // readout with no pulse
-    Serial.println("6");
-
-    startDigitize();
-    delayMicroseconds(10);
-
-    for (int i = 0 ; i < dataLength; i++)
-    {
-      adcreadings[i] = readADC();
-      delayMicroseconds(1);
-    }
-
-    endDigitize();
-
-    // Now send to serial
-    for (int i = 0 ; i < dataLength; i++){
-      Serial.println(adcreadings[i]);
-    }
-
+    // send the elapsed time
+    Serial.println(elapsed);
   }
 
 }

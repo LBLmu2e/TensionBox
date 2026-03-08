@@ -1,6 +1,7 @@
 # extract primary frequency from csv file
 
 import sys
+import argparse
 import numpy as np
 from numpy.fft import fft, fftfreq, rfft, irfft
 from numpy import argmax, sqrt, mean, diff, log
@@ -73,3 +74,14 @@ class Analyze_csv(object):
         tension = mu*np.square(ffreq*2*length) # tension in N
         wt = 1000*tension/g # equivalent tension in grams
         print(f"Wire tension = {wt:.2f} grams")
+        plt.show()
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Analyze CSV wire pulse data")
+    parser.add_argument("--file", type=str, default="world", help="The name of the CSV file with the pulse data")
+    parser.add_argument("--firstrow", type=int, default="world", help="first row to process")
+    parser.add_argument("--lastrow", type=int, default="world", help="last row to process")
+    args = parser.parse_args()
+    acsv = Analyze_csv(args.file,args.firstrow,args.lastrow)
+    print("created analyzer")
+    acsv.plot()
