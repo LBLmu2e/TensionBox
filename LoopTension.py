@@ -21,7 +21,7 @@ import math, time, os
 class LoopTension(object):
     def __init__(self,wirelen=0.65): # wire length in m
         print("Initializing tension measurement for wire length",wirelen)
-        self.fscale = 3.864e-3 * wirelen*wirelen # scale between frequency and wire length, computed using g, W density, wire diameter
+        self.fscale = 3.79e-3 * wirelen*wirelen # scale between frequency and wire length, computed using g, W density, wire diameter
         self.nomtension = 80 # nominal tension (gm)
         self.maxtension = 100 # maximum tension when conditioning the wire
         self.breaktension = 120 # breaking point!
