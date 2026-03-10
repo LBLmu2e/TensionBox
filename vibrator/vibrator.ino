@@ -122,6 +122,7 @@ void loop()
 
     unsigned int *pReading = adcreadings;
     int iread = 0;
+    digitalWrite(dbgPin,HIGH);
     unsigned long tstart = micros();
     do{
       delayMicroseconds(delaymicro);
@@ -131,6 +132,7 @@ void loop()
     } while(iread < dataLength);
     unsigned long elapsed = micros() - tstart;
     endDigitize();
+    digitalWrite(dbgPin,LOW);
 
     // Now send to serial
     for (int i = 0 ; i < dataLength; i++){

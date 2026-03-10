@@ -61,10 +61,10 @@ class LoopTension(object):
         timeline = timed.plot(np.arange(start,stop,tstep),self.ADC,scalex=True,scaley=True)
         timed.set_xlabel("Time (seconds)")
         timed.set_ylabel("Signal (ADC)")
-        nplot = len(self.ADC)
-        xf = fftfreq(nsamp,self.SamplingPeriod)[1:nsamp/2] # omit 0th (static) and negative frequency
-        absfft = abs(self.FFT[1:nsamp/2])
-        freqplt =freqd.semilogy(xf, absfft)
+        nplot = 100
+        xf = fftfreq(nsamp,self.SamplingPeriod)[1:int(nsamp/2)] # omit 0th (static) and negative frequency
+        absfft = abs(self.FFT[1:int(nsamp/2)])
+        freqplt =freqd.semilogy(xf[0:nplot], absfft[0:nplot])
         freqd.set_xlabel("Frequency (Hz)")
         freqd.set_ylabel("Amplitude")
 
@@ -74,7 +74,7 @@ class LoopTension(object):
         windowed = self.ADC * blackmanharris(nsamp)
         self.FFT = rfft(windowed)
     # Find the peak (primary harmonic) and interpolate around it to get a more accurate peak
-        absfft = abs(self.FFT[1:nsamp/2]) # skip negative frequencies
+        absfft = abs(self.FFT[1:int(nsamp/2)]) # skip negative frequencies
         i = argmax(absfft)
         true_i = parabolic(log(absfft), i)[0] # parabol maximum
         # convert to sampling frequency in Hz
