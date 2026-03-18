@@ -20,9 +20,10 @@ import serial
 import serial.tools
 import serial.tools.list_ports
 import math, time, os
+import csv
 
 class LoopTension(object):
-    def __init__(self, wirelen=0.65, max_points=100): # wire length in m
+    def __init__(self, wirelen=0.65, max_points=25): # wire length in m
         print("Initializing tension measurement for wire length",wirelen)
         self.fscale = 3.79e-3 * wirelen*wirelen # scale between frequency and wire length, computed using g, W density, wire diameter
         self.nomtension = 80 # nominal tension (gm)
@@ -52,20 +53,19 @@ class LoopTension(object):
         #Gemini code for animation plot
         self.max_points = max_points
         self.running = True
-        self.tare_offset = 0.0
         self.data_log = []
 
-        self.tension_history = deque([self.mintension] * max_points, maxlen=max_points)
+        self.tension_history = deque([self.nomtension] * max_points, maxlen=max_points)
         self.time_history = deque([0.0] * max_points, maxlen=max_points)
         self.start_time = time.time()
 
         # Create Layout: 2 rows, 2 columns
         # Top spans both columns, bottom is split
-        self.fig = plt.figure(figsize=(12, 10))
+        self.fig = plt.figure(figsize=(12, 6))
         self.ax_chart = plt.subplot2grid((3, 2), (0, 0), colspan=2)
         self.ax_wave = plt.subplot2grid((3, 2), (1, 0))
         self.ax_fft = plt.subplot2grid((3, 2), (1, 1))
-        plt.subplots_adjust(hspace=0.4, bottom=0.15)
+        plt.subplots_adjust(hspace=0.4, bottom=0.2)
 
         # 1. Main Strip Chart Setup
         self.line_tension, = self.ax_chart.plot([], [], 'b-', lw=2)
@@ -89,17 +89,10 @@ class LoopTension(object):
         self.ax_fft.set_xlim(0, 500) # Typical range for these wires
 
         # Buttons
-        ax_stop = plt.axes([0.8, 0.02, 0.1, 0.05])
-        ax_tare = plt.axes([0.65, 0.02, 0.1, 0.05])
-        self.btn_stop = Button(ax_stop, 'Stop & Save', color='lightcoral')
-        self.btn_tare = Button(ax_tare, 'Tare', color='lightblue')
-        self.btn_stop.on_clicked(self.stop_measurement)
-        self.btn_tare.on_clicked(self.tare_tension)
 
-    def tare_tension(self, event):
-        if len(self.tension_history) > 0:
-            self.tare_offset = self.tension_history[-1]
-            print(f"Tared at {self.tare_offset:.2f} gm")
+        self.ax_stop_ptr = plt.axes([0.8, 0.2, 0.12, 0.06])
+        self.btn_stop = Button(self.ax_stop_ptr, 'Stop & Save', color='lightcoral', hovercolor='red')
+        self.btn_stop.on_clicked(self.stop_measurement)
 
     def stop_measurement(self, event):
         self.running = False
@@ -126,7 +119,7 @@ class LoopTension(object):
         self.PulseAndRead(p_width * 1e6, False)
 
         freq = self.frequency()
-        tension = self.tension_gm(freq) - self.tare_offset
+        tension = self.tension_gm(freq)
         ts = time.time() - self.start_time
 
         # Update History
@@ -148,6 +141,8 @@ class LoopTension(object):
         # Update Strip Chart
         self.line_tension.set_data(self.time_history, self.tension_history)
         self.ax_chart.set_xlim(self.time_history[0], self.time_history[-1] + 0.2)
+        tmin = min(self.tension_history)
+        self.ax_chart.set_ylim(tmin - 5, self.breaktension + 5)
 
         # Update Waveform (Current self.ADC)
         wave_x = np.linspace(0, self.nADC * self.SamplingPeriod * 1000, self.nADC)
@@ -163,7 +158,13 @@ class LoopTension(object):
         return self.line_tension, self.line_wave, self.line_fft
 
     def plotTension(self):
-        self.ani = animation.FuncAnimation(self.fig, self.update_plot, interval=50, blit=False)
+        self.ani = animation.FuncAnimation(
+                self.fig,
+                self.update_plot,
+                interval=50,
+                blit=False,
+                cache_frame_data=False # Prevents memory leaks in long runs
+                )
         plt.show()
 
     def tension_gm(self,freq):
