@@ -5,16 +5,19 @@ import matplotlib.animation as animation
 from collections import deque
 import sys
 import numpy as np
-from numpy.fft import fft, fftfreq, rfft, irfft
+from numpy.fft import fft, rfftfreq, rfft
 from numpy import argmax, sqrt, mean, diff, log
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib.widgets import Button
+from collections import deque
 import math, time, os
 import scipy
 from scipy.signal import fftconvolve
 from scipy.signal.windows import blackmanharris
 from parabolic import parabolic
 import serial
+import serial.tools
 import serial.tools.list_ports
 import math, time, os
 
@@ -25,6 +28,7 @@ class LoopTension(object):
         self.nomtension = 80 # nominal tension (gm)
         self.tensionprecision = 2 # measurement precision: The goal is to get the tension to nominal within this
         self.maxtension = 100 # maximum tension when conditioning the wire
+        self.mintension = 0 # starting tension
         self.breaktension = 120 # breaking point!
         self.SamplingPeriod = 3e-4 # initial estimate of sampling period
         self.nADC = 400          # Must match DataLength in the Arduino code
@@ -45,14 +49,13 @@ class LoopTension(object):
         digifreq = 1.0/self.SamplingPeriod
         print(f"Initial digitization frequency = {digifreq:.2f}")
 
-
-        #Gemini code
+        #Gemini code for animation plot
         self.max_points = max_points
         self.running = True
         self.tare_offset = 0.0
         self.data_log = []
 
-        self.tension_history = deque([self.nomtension] * max_points, maxlen=max_points)
+        self.tension_history = deque([self.mintension] * max_points, maxlen=max_points)
         self.time_history = deque([0.0] * max_points, maxlen=max_points)
         self.start_time = time.time()
 
@@ -66,8 +69,11 @@ class LoopTension(object):
 
         # 1. Main Strip Chart Setup
         self.line_tension, = self.ax_chart.plot([], [], 'b-', lw=2)
-        self.ax_chart.axhline(y=self.nomtension, color='green', linestyle='--', alpha=0.5, label='Nominal')
-        self.ax_chart.axhline(y=self.breaktension, color='red', linestyle='-', alpha=0.8, label='BREAK')
+
+        self.ax_chart.axhline(y=self.nomtension, color='green', linestyle='--', alpha=0.6, label='Nominal')
+        self.ax_chart.axhline(y=self.maxtension, color='orange', linestyle='--', alpha=0.6, label='Conditioning')
+        self.ax_chart.axhline(y=self.breaktension, color='red', linestyle='-', lw=1.5, label='BREAK LIMIT')
+
         self.ax_chart.set_title("Real-time Tension History")
         self.ax_chart.set_ylabel("Tension (gm)")
 
@@ -89,9 +95,6 @@ class LoopTension(object):
         self.btn_tare = Button(ax_tare, 'Tare', color='lightblue')
         self.btn_stop.on_clicked(self.stop_measurement)
         self.btn_tare.on_clicked(self.tare_tension)
-
-        print("initialized\n")
-
 
     def tare_tension(self, event):
         if len(self.tension_history) > 0:
@@ -116,7 +119,7 @@ class LoopTension(object):
     def update_plot(self, frame):
         if not self.running: return self.line_tension, self.line_wave, self.line_fft
         iperiod = self.period(self.nomtension)
-        if len(self.tension_history) > 0:
+        if self.tension_history[-1] > self.mintension:
             iperiod = self.period(self.tension_history[-1])
 
         p_width = 0.5 * iperiod
@@ -131,6 +134,17 @@ class LoopTension(object):
         self.time_history.append(ts)
         self.data_log.append({'time': ts, 'tension': tension, 'freq': freq})
 
+        # Color logic
+        color = 'yellow'
+        if tension >= self.breaktension:
+            color = 'red'
+        if tension >= self.maxtension:
+            color = 'orange'
+        if tension > self.nomtension:
+            color = 'blue'
+        if abs(tension-self.nomtension) < 3:
+            color = 'green'
+        self.line_tension.set_color(color)
         # Update Strip Chart
         self.line_tension.set_data(self.time_history, self.tension_history)
         self.ax_chart.set_xlim(self.time_history[0], self.time_history[-1] + 0.2)
@@ -148,7 +162,7 @@ class LoopTension(object):
 
         return self.line_tension, self.line_wave, self.line_fft
 
-    def run_realtime_chart(self):
+    def plotTension(self):
         self.ani = animation.FuncAnimation(self.fig, self.update_plot, interval=50, blit=False)
         plt.show()
 
@@ -215,20 +229,20 @@ class LoopTension(object):
         self.SamplingPeriod = elapsed/self.nADC
         #print(f"Measured digitization frequency = {digifreq:.2f}")
 
-    def print_tension(self,npulses):
+    def printTension(self,npulses):
         print("Printing tension in a Loopg over",npulses,"pulses")
         # set initial pulse width according to the nominal tension
         iperiod = self.period(self.nomtension)
         ifreq = 1.0/iperiod
         pulse_width = 0.5*iperiod # maximum energy transfer with 1/2 period
-        #print(f"Initial frequency = {ifreq:.1f} Hz, pulse width = {pulse_width:.6f} seconds")
+        print(f"Initial frequency = {ifreq:.1f} Hz, pulse width = {pulse_width:.6f} seconds")
         for ik in range(0, npulses):
             self.PulseAndRead(pulse_width*1e6,ik==0) # microseconds
             freq = self.frequency()
             if(freq*self.SamplingPeriod < 0.5):
                 # convert to a tension
                 tension = self.tension_gm(freq)
-                 print(f"Measured fundamental frequency {freq:.1f} Hz, corresponding to a tension of {tension:.1f} gm")
+                print(f"Measured fundamental frequency {freq:.1f} Hz, corresponding to a tension of {tension:.1f} gm")
             # update the pulse width
                 0.5*self.period(tension)
             else:
