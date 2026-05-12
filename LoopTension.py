@@ -30,6 +30,7 @@ class LoopTension(object):
         self.tensionprecision = 2 # measurement precision: The goal is to get the tension to nominal within this
         self.maxtension = 100 # maximum tension when conditioning the wire
         self.mintension = 0 # starting tension
+        self.currenttension = 0 # current tension
         self.breaktension = 120 # breaking point!
         self.SamplingPeriod = 3e-4 # initial estimate of sampling period
         self.nADC = 400          # Must match DataLength in the Arduino code
@@ -87,6 +88,9 @@ class LoopTension(object):
         self.ax_fft.set_title("Power Spectrum (FFT)")
         self.ax_fft.set_xlabel("Frequency (Hz)")
         self.ax_fft.set_xlim(0, 500) # Typical range for these wires
+        # print the tension on this plot
+        self.tmessage = f"Current Tension= {self.currenttension} gm"
+        self.ttext = self.ax_fft.text(0.0,0.0,self.tmessage)#,animated=True)
 
         # Buttons
 
@@ -119,23 +123,24 @@ class LoopTension(object):
         self.PulseAndRead(p_width * 1e6, False)
 
         freq = self.frequency()
-        tension = self.tension_gm(freq)
+        self.currenttension = self.tension_gm(freq)
         ts = time.time() - self.start_time
+#        print("Current Tension",self.currenttension)
 
         # Update History
-        self.tension_history.append(tension)
+        self.tension_history.append(self.currenttension)
         self.time_history.append(ts)
-        self.data_log.append({'time': ts, 'tension': tension, 'freq': freq})
+        self.data_log.append({'time': ts, 'tension': self.currenttension, 'freq': freq})
 
         # Color logic
         color = 'yellow'
-        if tension >= self.breaktension:
+        if self.currenttension >= self.breaktension:
             color = 'red'
-        if tension >= self.maxtension:
+        if self.currenttension >= self.maxtension:
             color = 'orange'
-        if tension > self.nomtension:
+        if self.currenttension > self.nomtension:
             color = 'blue'
-        if abs(tension-self.nomtension) < 3:
+        if abs(self.currenttension-self.nomtension) < 3:
             color = 'green'
         self.line_tension.set_color(color)
         # Update Strip Chart
@@ -153,7 +158,11 @@ class LoopTension(object):
         # Update FFT
         xf = rfftfreq(self.nADC, self.SamplingPeriod)
         self.line_fft.set_data(xf, np.abs(self.FFT))
-        self.ax_fft.set_ylim(0, np.max(np.abs(self.FFT)) * 1.1)
+        maxval = np.max(np.abs(self.FFT))
+        self.ax_fft.set_ylim(0, maxval* 1.1)
+        self.tmessage = f"Current Tension= {self.currenttension:.2f} gm"
+        self.ttext.set(text=self.tmessage)
+        self.ttext.set_y(0.5*maxval)
 
         return self.line_tension, self.line_wave, self.line_fft
 
@@ -184,7 +193,7 @@ class LoopTension(object):
         timed.set_xlabel("Time (seconds)")
         timed.set_ylabel("Signal (ADC)")
         nplot = 100
-        xf = fftfreq(nsamp,self.SamplingPeriod)[1:int(nsamp/2)] # omit 0th (static) and negative frequencies
+        xf = rfftfreq(nsamp,self.SamplingPeriod)[1:int(nsamp/2)] # omit 0th (static) and negative frequencies
         absfft = abs(self.FFT[1:int(nsamp/2)])
         freqplt =freqd.semilogy(xf[0:nplot], absfft[0:nplot])
         freqd.set_xlabel("Frequency (Hz)")
